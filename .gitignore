@@ -1,0 +1,26 @@
+# 機密情報・APIキー
+.env
+*.key
+*.dpapi
+runtime/
+
+# 環境ごとの設定・自動生成ファイル
+config.json
+launcher.local.json
+guide.fst
+guide.mdf
+
+# 各施設情報（sampleテンプレートのみ管理し、独自施設は除外）
+facilities/*
+!facilities/sample/
+
+# キャッシュ・配布物・一時ファイル
+__pycache__/
+dist/
+*.tmp
+
+# マニュアル類（ローカル配布用としてGitHubから除外）
+USER_MANUAL.md
+USER_MANUAL.pdf
+ADMIN_MANUAL.md
+ADMIN_MANUAL.pdf

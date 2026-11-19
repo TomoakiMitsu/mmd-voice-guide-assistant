@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>観光案内アシスタント</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f5f1;color:#203b34;font:16px/1.8 system-ui,sans-serif}main{max-width:880px;margin:24px auto;padding:24px}small{color:#61756a}#chat{min-height:320px;max-height:54vh;overflow:auto;padding:12px 0}.message{white-space:pre-wrap;background:white;padding:16px 22px;border-radius:16px;margin:12px 0;max-width:90%}.user{margin-left:auto;background:#d9e9dc}form{display:flex;gap:10px}input[type=text]{flex:1;min-width:0;padding:15px;border:1px solid #b1c5b7;border-radius:10px;font:inherit}button{cursor:pointer;background:#245a48;color:white;border:0;border-radius:10px;padding:12px 20px;font:inherit}button:disabled{opacity:.5;cursor:wait}#status{min-height:35px;color:#52685b}#warning{color:#974c24}footer{margin-top:24px;font-size:12px;color:#61756a}audio{width:100%;margin-top:10px}.options{display:flex;gap:18px;align-items:center;margin:15px 0}@media(max-width:600px){main{margin:0;padding:18px}form{flex-wrap:wrap}input[type=text]{flex-basis:100%}}
+</style>
+<main>
+<div id="chat" role="log" aria-live="polite"></div>
+<div id="status" role="status">質問を入力するか、マイクで話しかけてください。</div>
+<div id="turnError" role="alert" style="color:#974c24" hidden></div><button type="button" id="retry" hidden>もう一度回答する</button>
+<small id="phases">音声待受 → 考え中 → 音声準備 → 読み上げ → 次の質問</small>
+<form><input id="question" type="text" placeholder="質問を入力してください" maxlength="2000" aria-label="質問" required><button id="send">送信</button><button type="button" id="mic">音声入力</button></form>
+<div class="options"><label><input type="checkbox" id="voice" checked> 音声で読み上げる</label><label><input type="checkbox" id="auto" checked> 音声入力を自動待受</label></div>
+<p><label>案内モード <select id="searchMode"><option value="auto">自動で選ぶ</option><option value="local">施設資料で案内</option><option value="search">Web検索</option><option value="weather">天気</option><option value="transit">乗り換え</option></select></label></p>
+<button type="button" id="newChat">新しい会話</button> <small id="turns">会話 0往復</small>
+<p><small>音声認識はブラウザのサービスを使用します。Chrome / Edgeをご利用ください。話し終わると自動で送信されます。</small></p>
+<div id="warning" role="alert"></div><div id="sources" aria-label="取得元・検索結果"></div><div id="audio"></div>
+<footer id="credits">CG-CA Gene (c) 2023 by Nagoya Institute of Technology, Moonshot R&amp;D Goal 1 Avatar Symbiotic Society (CC BY 4.0)<br>COEIROINK:つくよみちゃん / 天気: Open-Meteo (CC BY 4.0)<br>MMDキャラクターはMMDAgent-EXの別ウィンドウに表示します。</footer></main>
+<script>
+const $=id=>document.getElementById(id);let busy=false,rec,recognizing=false,starting=false,speaking=false,retryTimer,silenceTimer,permissionBlocked=false;
+let history=[],facilityId=null,greetingText='',turns=0,networkErrors=0,recognitionConsumed=false,lastFailedQuestion='',micStartRetries=0;
+function stage(label){$('status').textContent=label;}
+function finishStage(){}
+function remember(question,answer){history.push({role:'user',text:question},{role:'model',text:answer});while(history.length>12||history.reduce((n,item)=>n+item.text.length,0)>24000)history.splice(0,2);turns++;$('turns').textContent=`会話 ${turns}往復 / 直近${history.length/2}往復を記憶`;}
+function message(text,user=false){const el=document.createElement('div');el.className='message'+(user?' user':'');el.textContent=text;$('chat').append(el);$('chat').scrollTop=$('chat').scrollHeight;}
+function controls(value){busy=value;$('send').disabled=value;$('mic').disabled=value||!rec;$('newChat').disabled=value;$('searchMode').disabled=value;$('retry').disabled=value;}
+function stopMic(){clearTimeout(retryTimer);clearTimeout(silenceTimer);if(rec&&(recognizing||starting))rec.abort();}
+function startMic(){if(!rec||recognizing||starting||busy||speaking||permissionBlocked||document.hidden)return;try{starting=true;rec.start();}catch(error){starting=false;if(error.name==='InvalidStateError'&&micStartRetries++<5){scheduleMic(100);}else{$('warning').textContent='マイクを再開できません。音声入力ボタンで再開してください。';}}}
+function showSources(event){for(const source of event.sources||[]){try{const url=new URL(source.url);if(!['https:','http:'].includes(url.protocol))continue;const row=document.createElement('p'),link=document.createElement('a');link.textContent=source.title||url.hostname;link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';row.append(link);$('sources').append(row);}catch{}}if(event.search_entry){const frame=document.createElement('iframe');frame.title='Web検索の参照候補';frame.setAttribute('sandbox','allow-popups allow-popups-to-escape-sandbox');frame.srcdoc=event.search_entry;frame.style='width:100%;height:150px;border:0';$('sources').append(frame);}}
+function scheduleMic(delay=0){clearTimeout(retryTimer);if($('auto').checked){if(delay===0)startMic();else retryTimer=setTimeout(startMic,delay);}}
+function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+async function waitMmd(seconds){try{const r=await fetch('/api/speech/end');if(!r.ok)throw Error('音声終了の確認に失敗しました');return await r.json();}catch{await sleep(Math.max(0,seconds)*1000);$('warning').textContent+=' 音声終了通知を受け取れなかったため、音声の長さから待受を再開しました。';}}
+async function readChat(response,onEvent){if(!response.ok){const data=await response.json();throw Error(data.error);}const reader=response.body.getReader(),decoder=new TextDecoder();let pending='',result;
+ function consume(line){if(!line.trim())return;const event=JSON.parse(line);if(event.type==='error')throw Error(event.error);if(event.type==='done')result=event;else onEvent(event);}
+ while(true){const {value,done}=await reader.read();pending+=decoder.decode(value||new Uint8Array(),{stream:!done});let index;while((index=pending.indexOf('\n'))>=0){consume(pending.slice(0,index));pending=pending.slice(index+1);}if(done)break;}if(pending.trim())consume(pending);if(!result)throw Error('通信が途中で切れました。');return result;}
+async function submit(event){event?.preventDefault();clearTimeout(silenceTimer);const question=$('question').value.trim();if(!question||busy)return;
+ controls(true);stopMic();$('audio').replaceChildren();$('sources').replaceChildren();message(question,true);$('question').value='';$('warning').textContent='';$('turnError').hidden=true;$('retry').hidden=true;stage('質問を送信中');let shown=false,pendingAnswer='',pendingSources=[],answerReceived=false;
+ const reveal=()=>{if(shown||!pendingAnswer)return;message(pendingAnswer);if(answerReceived)remember(question,pendingAnswer);shown=true;for(const source of pendingSources)showSources(source);pendingSources=[];};
+ try{const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,voice:$('voice').checked,history,facility_id:facilityId,stream:true,mode:$('searchMode').value||'auto'})});
+ const data=await readChat(response,event=>{if(event.type==='stage')stage(event.label);if(event.type==='sources')pendingSources.push(event);if(event.type==='answer'){pendingAnswer=event.answer;answerReceived=true;if(!$('voice').checked)reveal();}});
+ pendingAnswer=data.answer;answerReceived=typeof data.answer==='string'&&Boolean(data.answer.trim());$('warning').textContent=data.warnings.join(' ');
+ if(!pendingAnswer?.trim())throw Error('空の回答が返りました。もう一度お試しください。');
+ if(data.audio){speaking=true;stage('発話の開始を待っています');let playback=data.playback;
+ if(playback==='mmd'){const r=await fetch('/api/speak',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({audio:data.audio})});const started=await r.json();if(!r.ok)throw Error(started.error);playback=started.playback;if(playback==='mmd'){reveal();stage('読み上げ中（マイク休止）');if(!started.start_confirmed)$('warning').textContent+=' MMDの開始通知を確認できなかったため、文章を表示しました。';await waitMmd(data.audio_seconds);}}
+ if(playback==='browser'){const player=document.createElement('audio');player.controls=true;player.src=data.audio;$('audio').append(player);
+ await new Promise(resolve=>{let timer;const done=()=>{clearTimeout(timer);speaking=false;scheduleMic();resolve();};player.onended=done;player.onerror=()=>{reveal();$('warning').textContent+=' 音声を再生できません。文章でご確認ください。';done();};player.onplaying=()=>{speaking=true;stopMic();reveal();stage('読み上げ中（マイク休止）');clearTimeout(timer);timer=setTimeout(done,(data.audio_seconds+3)*1000);};player.onpause=()=>{if(!player.ended)done();};timer=setTimeout(()=>{reveal();$('warning').textContent+=' 音声の開始を確認できません。';done();},15000);player.play().catch(()=>{reveal();$('warning').textContent+=' 再生ボタンを押してください。';$('auto').checked=false;done();});});
+ }}else reveal();
+ }catch(error){if(!pendingAnswer)pendingAnswer='回答を取得できませんでした。'+error.message;reveal();lastFailedQuestion=question;$('turnError').textContent=error.message;$('turnError').hidden=false;$('retry').hidden=false;$('warning').textContent=error.message;}finally{finishStage();speaking=false;controls(false);$('status').textContent=$('auto').checked?'次の質問を待っています…':'音声入力は停止中です。';scheduleMic();}}
+document.querySelector('form').addEventListener('submit',submit);
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(SpeechRecognition){rec=new SpeechRecognition();rec.lang='ja-JP';rec.continuous=true;rec.interimResults=true;
+ function commitVoice(){if(busy||speaking||recognitionConsumed)return;if(!$('question').value.trim())return;recognitionConsumed=true;stopMic();submit();}
+ rec.onstart=()=>{starting=false;recognizing=true;recognitionConsumed=false;micStartRetries=0;if(busy||speaking||document.hidden){stopMic();return;}$('mic').textContent='入力停止';$('status').textContent='聞いています…';};
+ rec.onend=()=>{clearTimeout(silenceTimer);starting=false;recognizing=false;$('mic').textContent='音声入力';if(!recognitionConsumed&&$('question').value.trim()&&!busy&&!speaking){commitVoice();return;}scheduleMic(busy||speaking?0:150);};
+ rec.onresult=e=>{if(busy||speaking||recognitionConsumed||!recognizing)return;networkErrors=0;let text='';for(let i=0;i<e.results.length;i++)text+=e.results[i][0].transcript;$('question').value=text;clearTimeout(silenceTimer);if(text.trim()){silenceTimer=setTimeout(commitVoice,2500);}};
+ rec.onerror=e=>{clearTimeout(silenceTimer);if(e.error==='network'&&++networkErrors<=3){$('warning').textContent=`音声認識サービスに再接続しています（${networkErrors}/3）`;return;}if(['not-allowed','service-not-allowed','audio-capture','network','language-not-supported'].includes(e.error)){$('auto').checked=false;permissionBlocked=true;$('warning').textContent='音声入力を停止しました: '+e.error+'。マイク許可・接続を確認後、音声入力ボタンで再開できます。';}};
+ $('mic').onclick=()=>{permissionBlocked=false;if(recognizing||starting){$('auto').checked=false;stopMic();}else{$('auto').checked=true;startMic();}};
+}else{$('mic').disabled=true;$('auto').checked=false;$('auto').disabled=true;$('warning').textContent='このブラウザでは音声認識を利用できません。文字で質問できます。';}
+$('auto').onchange=()=>{permissionBlocked=false;if($('auto').checked)startMic();else stopMic();};
+$('retry').onclick=()=>{if(!busy&&lastFailedQuestion){$('question').value=lastFailedQuestion;submit();}};
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopMic();else scheduleMic();});
+async function refreshInfo(greeting=false){const r=await fetch('/api/info');if(!r.ok)throw Error('アプリに接続できません');const info=await r.json();if(facilityId&&facilityId!==info.facility_id){history=[];turns=0;$('chat').replaceChildren();$('turns').textContent='会話 0往復';}facilityId=info.facility_id;greetingText=info.greeting;$('credits').replaceChildren();const c1=document.createTextNode(info.mmd_credit||'未設定'),c2=document.createTextNode(`${info.coeiroink_credit||'COEIROINK:未設定'} / 天気: Open-Meteo (CC BY 4.0)`),c3=document.createTextNode('MMDキャラクターはMMDAgent-EXの別ウィンドウに表示します。');$('credits').append(c1,document.createElement('br'),c2,document.createElement('br'),c3);if(greeting)message(info.greeting);}
+$('newChat').onclick=async()=>{stopMic();history=[];turns=0;$('chat').replaceChildren();$('turns').textContent='会話 0往復';$('question').value='';$('warning').textContent='';try{await refreshInfo();message(greetingText);}catch(error){$('warning').textContent=error.message;}scheduleMic();};
+refreshInfo(true).then(scheduleMic).catch(error=>{$('warning').textContent=error.message;});
+</script></html>
