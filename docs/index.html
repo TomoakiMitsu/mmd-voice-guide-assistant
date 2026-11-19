@@ -356,6 +356,7 @@
     <nav class="nav-links">
       <a href="#architecture">仕組み</a>
       <a href="#customize">施設カスタマイズ</a>
+      <a href="#voice-cost">無料利用と自分の声</a>
       <a href="#setup">導入とライセンス</a>
       <a href="https://github.com/TomoakiMitsu/mmd-voice-guide-assistant" target="_blank" rel="noopener noreferrer">GitHub</a>
     </nav>
@@ -372,9 +373,10 @@
       </p>
       <div class="spec-strip mono">
         <span>追加pipパッケージ不要</span>
+        <span>無料枠で構築可能</span>
+        <span>自分の声・オリジナル音声対応</span>
         <span>2.5秒無音で自動送信</span>
         <span>DPAPI暗号化保存</span>
-        <span>施設フォルダ分離</span>
       </div>
       <div class="actions">
         <a class="btn-primary" href="https://github.com/TomoakiMitsu/mmd-voice-guide-assistant" target="_blank" rel="noopener noreferrer">GitHubリポジトリを見る</a>
@@ -489,9 +491,58 @@
     </div>
   </section>
 
+  <section class="band" id="voice-cost">
+    <div class="sec-head">
+      <span class="num mono">03 / VOICE &amp; COST</span>
+      <h2>無料でできることと<br>自分の声の反映</h2>
+      <p>
+        ソフト本体と無料枠を組み合わせれば初期費用ゼロで試作でき、COEIROINK を使えば自分の声（MYCOEIROINK等）での案内も可能です。
+      </p>
+    </div>
+    <div>
+      <table class="spec-table">
+        <tr>
+          <th>無料ソフト・3Dモデル</th>
+          <td>Python、MMDAgent-EX、COEIROINK v2、同梱モデル（Gene / Uka）はいずれも無料で導入できます。</td>
+        </tr>
+        <tr>
+          <th>デモモード（API不要）</th>
+          <td>APIキーを設定しなくても、facility.json の固定FAQを使って音声入力・音声合成・口パクの動作を無料で試せます。</td>
+        </tr>
+        <tr>
+          <th>APIの無料枠活用</th>
+          <td>Gemini API の無料枠、Open-Meteo（非商用向け無料天気予報）、駅すぱあとフリープランの範囲内で試験運用できます（利用上限や商用条件は各提供元の規約に従います）。</td>
+        </tr>
+        <tr>
+          <th>自分の声・好きな声</th>
+          <td>COEIROINK の標準話者だけでなく、MYCOEIROINK 等で作成した自分の声・オリジナル音声モデルもそのまま案内音声に使えます。</td>
+        </tr>
+      </table>
+
+      <ol class="flow-list" style="margin-top: 24px;">
+        <li>
+          <span class="step mono">STEP 01</span>
+          <span>COEIROINK v2 に使いたい音声モデル（配布話者や MYCOEIROINK で作成した自分の声）を導入し、COEIROINK を起動します。</span>
+        </li>
+        <li>
+          <span class="step mono">STEP 02</span>
+          <span>setup.bat を開き、「5. キャラ・音声・ソフト」タブにある「起動中COEIROINKから話者取得」ボタンを押します。</span>
+        </li>
+        <li>
+          <span class="step mono">STEP 03</span>
+          <span>「話者プリセット選択」プルダウンから自分の声・使いたい声を選ぶと、speaker_uuid・style_id・クレジット表記（COEIROINK:話者名）が自動入力されます。</span>
+        </li>
+        <li>
+          <span class="step mono">STEP 04</span>
+          <span>「全体設定を保存」を押して start.bat で起動すると、その声と設定した話速でキャラクターが口パク案内します。</span>
+        </li>
+      </ol>
+    </div>
+  </section>
+
   <section class="band" id="setup">
     <div class="sec-head">
-      <span class="num mono">03 / DEPLOYMENT</span>
+      <span class="num mono">04 / DEPLOYMENT</span>
       <h2>導入手順とデータ分離</h2>
       <p>
         必要なソフトウェアを用意し、setup.bat で設定を行ったあと、日常の運用では start.bat を起動するだけです。
