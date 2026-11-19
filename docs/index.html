@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>mmd-voice-guide-assistant | 音声対話3Dアバター施設案内システム</title>
+<style>
+  :root {
+    --bg: #f4f5f0;
+    --ink: #1c2621;
+    --muted: #53635a;
+    --accent: #245a48;
+    --line: #cfd8d1;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--line);
+    padding: 18px 0;
+  }
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .nav-links {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+  }
+  .nav-links a:hover {
+    color: var(--accent);
+  }
+
+  /* Hero */
+  .hero {
+    padding: 64px 0 56px;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 48px;
+    align-items: start;
+  }
+  .hero-kicker {
+    color: var(--accent);
+    margin-bottom: 14px;
+    display: block;
+  }
+  h1 {
+    font-size: clamp(32px, 4.4vw, 50px);
+    line-height: 1.22;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 24px;
+  }
+  .hero-lead {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 540px;
+    margin: 0 0 28px;
+  }
+  .spec-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    padding: 14px 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 28px;
+    color: var(--ink);
+  }
+  .actions {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .btn-primary {
+    display: inline-block;
+    background: var(--accent);
+    color: #f4f5f0;
+    text-decoration: none;
+    padding: 13px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid var(--accent);
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-secondary {
+    display: inline-block;
+    background: transparent;
+    color: var(--ink);
+    text-decoration: none;
+    padding: 13px 24px;
+    font-size: 14px;
+    border: 1px solid var(--ink);
+  }
+  .btn-secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Character Showcase */
+  .char-panel {
+    border: 1px solid var(--line);
+    padding: 18px;
+  }
+  .char-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 16px;
+  }
+  .char-tab {
+    background: none;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    padding: 8px 16px;
+    cursor: pointer;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+  }
+  .char-tab[aria-selected="true"] {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 700;
+  }
+  .char-stage {
+    height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line);
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .char-stage img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .char-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--muted);
+  }
+
+  /* Asymmetric Sections */
+  section.band {
+    padding: 64px 0;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 270px 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+  .sec-head .num {
+    display: block;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .sec-head h2 {
+    font-size: 24px;
+    line-height: 1.35;
+    margin: 0 0 12px;
+    font-weight: 700;
+  }
+  .sec-head p {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  /* Architecture Diagram */
+  .diagram-box {
+    border: 1px solid var(--line);
+    padding: 24px;
+    margin-bottom: 28px;
+    overflow-x: auto;
+  }
+  .diagram-box svg {
+    display: block;
+    width: 100%;
+    min-width: 600px;
+    height: auto;
+  }
+  .flow-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-top: 1px solid var(--line);
+  }
+  .flow-list li {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+    align-items: baseline;
+  }
+  .flow-list .step {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Setup Tabs */
+  .setup-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 24px;
+  }
+  .setup-tab {
+    background: none;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    padding: 10px 16px;
+    cursor: pointer;
+    color: var(--muted);
+    font: inherit;
+    font-size: 14px;
+  }
+  .setup-tab[aria-selected="true"] {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+    font-weight: 700;
+  }
+  .setup-detail {
+    border: 1px solid var(--line);
+    padding: 24px;
+  }
+  .setup-detail h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+  }
+  .setup-detail p {
+    margin: 0 0 18px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  table.spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  table.spec-table th,
+  table.spec-table td {
+    border-top: 1px solid var(--line);
+    padding: 11px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.spec-table th {
+    width: 220px;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  table.spec-table td {
+    color: var(--muted);
+  }
+
+  /* Install & Code */
+  .code-block {
+    border: 1px solid var(--line);
+    padding: 18px 20px;
+    margin: 18px 0 28px;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+  .split-notes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin-top: 24px;
+  }
+  .note-col {
+    border-top: 2px solid var(--ink);
+    padding-top: 14px;
+  }
+  .note-col.accent {
+    border-top-color: var(--accent);
+  }
+  .note-col h3 {
+    margin: 0 0 10px;
+    font-size: 15px;
+  }
+  .note-col ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* Footer */
+  footer {
+    padding: 40px 0 56px;
+    display: grid;
+    grid-template-columns: 270px 1fr;
+    gap: 48px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  footer a { color: var(--accent); }
+
+  @media (max-width: 860px) {
+    .hero, section.band, footer, .split-notes {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    .hero { padding: 40px 0; }
+    section.band { padding: 44px 0; }
+    table.spec-table th { width: 130px; }
+    .flow-list li { grid-template-columns: 1fr; gap: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand mono" href="#">mmd-voice-guide-assistant</a>
+    <nav class="nav-links">
+      <a href="#architecture">仕組み</a>
+      <a href="#customize">施設カスタマイズ</a>
+      <a href="#setup">導入とライセンス</a>
+      <a href="https://github.com/TomoakiMitsu/mmd-voice-guide-assistant" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <div>
+      <span class="hero-kicker mono">WINDOWS / PYTHON STDLIB / LOCALHOST:8765</span>
+      <h1>施設の案内を、<br>自分のパソコンで。</h1>
+      <p class="hero-lead">
+        音声入力、Gemini APIによる回答生成、COEIROINKの音声合成、MMDAgent-EXの3Dキャラクター表示を1台のWindows PC上で連携させる、観光・施設向けの汎用案内アシスタントです。
+      </p>
+      <div class="spec-strip mono">
+        <span>追加pipパッケージ不要</span>
+        <span>2.5秒無音で自動送信</span>
+        <span>DPAPI暗号化保存</span>
+        <span>施設フォルダ分離</span>
+      </div>
+      <div class="actions">
+        <a class="btn-primary" href="https://github.com/TomoakiMitsu/mmd-voice-guide-assistant" target="_blank" rel="noopener noreferrer">GitHubリポジトリを見る</a>
+        <a class="btn-secondary" href="#setup">導入手順を確認</a>
+      </div>
+    </div>
+
+    <div class="char-panel">
+      <div class="char-tabs" role="tablist" aria-label="同梱キャラクター">
+        <button class="char-tab" role="tab" aria-selected="true" data-char="gene">CG-CA Gene</button>
+        <button class="char-tab" role="tab" aria-selected="false" data-char="uka">CG-CA Uka</button>
+      </div>
+      <div class="char-stage">
+        <img id="charImg" src="assets/gene.png" alt="CG-CA Gene">
+      </div>
+      <div class="char-meta mono">
+        <span id="charPath">assets/mmd/gene/Gene.pmd</span>
+        <span id="charLicense">CC BY 4.0</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="architecture">
+    <div class="sec-head">
+      <span class="num mono">01 / ARCHITECTURE</span>
+      <h2>仕組みと対話の流れ</h2>
+      <p>
+        Python標準ライブラリだけで動くローカルサーバー（app.py）が中心となり、各ソフトウェアと外部APIを仲介します。
+      </p>
+    </div>
+    <div>
+      <div class="diagram-box">
+        <svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace, Consolas, Yu Gothic UI, sans-serif">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#245a48"/>
+            </marker>
+          </defs>
+          <rect x="8" y="64" width="160" height="92" fill="none" stroke="#1c2621" stroke-width="1.5"/>
+          <text x="88" y="92" text-anchor="middle" font-size="13" font-weight="700" fill="#1c2621">ブラウザUI</text>
+          <text x="88" y="114" text-anchor="middle" font-size="11" fill="#53635a">Chrome / Edge</text>
+          <text x="88" y="134" text-anchor="middle" font-size="10" fill="#53635a">Web Speech API</text>
+
+          <rect x="242" y="44" width="206" height="132" fill="none" stroke="#245a48" stroke-width="2"/>
+          <text x="345" y="74" text-anchor="middle" font-size="13" font-weight="700" fill="#245a48">app.py (127.0.0.1:8765)</text>
+          <text x="345" y="98" text-anchor="middle" font-size="10.5" fill="#1c2621">施設資料・読み辞書の適用</text>
+          <text x="345" y="118" text-anchor="middle" font-size="10.5" fill="#1c2621">DPAPI / .env 鍵管理</text>
+          <text x="345" y="138" text-anchor="middle" font-size="10.5" fill="#1c2621">日別会話ログ (JSONL)</text>
+          <text x="345" y="158" text-anchor="middle" font-size="10.5" fill="#53635a">HTTP 503 自動リトライ</text>
+
+          <rect x="522" y="10" width="190" height="58" fill="none" stroke="#1c2621" stroke-width="1.2"/>
+          <text x="617" y="34" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2621">Gemini API / 外部API</text>
+          <text x="617" y="52" text-anchor="middle" font-size="10.5" fill="#53635a">検索 / Open-Meteo / 駅すぱあと</text>
+
+          <rect x="522" y="81" width="190" height="58" fill="none" stroke="#1c2621" stroke-width="1.2"/>
+          <text x="617" y="105" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2621">COEIROINK v2</text>
+          <text x="617" y="123" text-anchor="middle" font-size="10.5" fill="#53635a">127.0.0.1:50032</text>
+
+          <rect x="522" y="152" width="190" height="58" fill="none" stroke="#1c2621" stroke-width="1.2"/>
+          <text x="617" y="176" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2621">MMDAgent-EX</text>
+          <text x="617" y="194" text-anchor="middle" font-size="10.5" fill="#53635a">TCP 127.0.0.1:39391</text>
+
+          <line x1="168" y1="110" x2="236" y2="110" stroke="#245a48" stroke-width="1.6" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+          <line x1="448" y1="78" x2="516" y2="39" stroke="#245a48" stroke-width="1.4" marker-end="url(#arrow)"/>
+          <line x1="448" y1="110" x2="516" y2="110" stroke="#245a48" stroke-width="1.4" marker-end="url(#arrow)"/>
+          <line x1="448" y1="142" x2="516" y2="181" stroke="#245a48" stroke-width="1.4" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+        </svg>
+      </div>
+
+      <ol class="flow-list">
+        <li>
+          <span class="step mono">01 音声待受</span>
+          <span>Chrome / Edge のマイクで音声を取得し、最後の発話から2.5秒間の無音で自動的にマイクを切って送信します。</span>
+        </li>
+        <li>
+          <span class="step mono">02 考え中</span>
+          <span>MMDAgent-EX に思考モーションを送り、施設資料と会話履歴（直近6往復）をもとに回答を生成します。日常の雑談にも対応します。</span>
+        </li>
+        <li>
+          <span class="step mono">03 音声準備</span>
+          <span>思考モーションを継続したまま、施設ごとの読み辞書を適用して COEIROINK で WAV 音声を合成します。</span>
+        </li>
+        <li>
+          <span class="step mono">04 発話同期</span>
+          <span>MMDAgent-EX の音声開始通知（SOUND_EVENT_START）に合わせて回答文を画面に表示し、口パク再生を行います。</span>
+        </li>
+        <li>
+          <span class="step mono">05 即時再開</span>
+          <span>音声終了通知（SOUND_EVENT_STOP）を受け取ると即座にマイク待受を再開し、次の質問へ移ります。</span>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="band" id="customize">
+    <div class="sec-head">
+      <span class="num mono">02 / CUSTOMIZATION</span>
+      <h2>setup.bat による施設設定</h2>
+      <p>
+        設定ファイルを直接編集しなくても、同梱のGUI管理ツール（setup_wizard.py）の5つのタブから初期設定と運用中の更新を行えます。
+      </p>
+    </div>
+    <div>
+      <div class="setup-tabs" role="tablist" aria-label="setup.bat タブ構成">
+        <button class="setup-tab" role="tab" aria-selected="true" data-tab="0">1. 施設基本設定</button>
+        <button class="setup-tab" role="tab" aria-selected="false" data-tab="1">2. 施設資料 (docs)</button>
+        <button class="setup-tab" role="tab" aria-selected="false" data-tab="2">3. 読み辞書</button>
+        <button class="setup-tab" role="tab" aria-selected="false" data-tab="3">4. API・外部連携</button>
+        <button class="setup-tab" role="tab" aria-selected="false" data-tab="4">5. キャラ・音声・ソフト</button>
+      </div>
+      <div class="setup-detail" id="setupDetail"></div>
+    </div>
+  </section>
+
+  <section class="band" id="setup">
+    <div class="sec-head">
+      <span class="num mono">03 / DEPLOYMENT</span>
+      <h2>導入手順とデータ分離</h2>
+      <p>
+        必要なソフトウェアを用意し、setup.bat で設定を行ったあと、日常の運用では start.bat を起動するだけです。
+      </p>
+    </div>
+    <div>
+      <table class="spec-table">
+        <tr>
+          <th>Python 3.11+</th>
+          <td>公式サイト（python.org）から導入。インストール時の「Add python.exe to PATH」チェックが必須です。追加パッケージは不要です。</td>
+        </tr>
+        <tr>
+          <th>COEIROINK v2</th>
+          <td>公式サイト（coeiroink.com）から展開し、話者音声を導入します（初期設定のクレジット表記は COEIROINK:つくよみちゃん）。</td>
+        </tr>
+        <tr>
+          <th>MMDAgent-EX</th>
+          <td>公式サイト（mmdagent-ex.dev）から展開します。起動時に guide.fst / guide.mdf が設定から自動生成されます。</td>
+        </tr>
+        <tr>
+          <th>ブラウザ</th>
+          <td>Web Speech API による音声入力を利用するため、Google Chrome または Microsoft Edge を既定ブラウザに設定します。</td>
+        </tr>
+      </table>
+
+      <div class="code-block mono">
+        git clone https://github.com/TomoakiMitsu/mmd-voice-guide-assistant.git<br>
+        cd mmd-voice-guide-assistant<br>
+        # 1. setup.bat を起動して施設ID（sample以外）・APIキー・キャラを設定<br>
+        # 2. start.bat を起動してサーバー・COEIROINK・MMDAgent-EX・ブラウザを開始<br>
+        python -m unittest discover -s tests -v
+      </div>
+
+      <div class="split-notes">
+        <div class="note-col accent">
+          <h3>Git管理対象（公開されるファイル）</h3>
+          <ul>
+            <li>プログラム本体（app.py, setup_wizard.py 等）</li>
+            <li>設定テンプレート（config.example.json, .env.example）</li>
+            <li>素の施設雛形（facilities/sample/）</li>
+            <li>同梱キャラクターモデル（assets/mmd/gene/, uka/）</li>
+          </ul>
+        </div>
+        <div class="note-col">
+          <h3>.gitignore 除外対象（ローカル専用）</h3>
+          <ul>
+            <li>APIキー類（.env, runtime/*.dpapi, *.key）</li>
+            <li>独自施設フォルダ（facilities/sample/ 以外のすべて）</li>
+            <li>環境別設定（config.json, launcher.local.json, guide.*）</li>
+            <li>会話ログ・エラー記録・一時音声（runtime/）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <div class="mono">mmd-voice-guide-assistant</div>
+  <div>
+    CG-CA Gene (c) 2023 by Nagoya Institute of Technology, Moonshot R&amp;D Goal 1 Avatar Symbiotic Society (CC BY 4.0)<br>
+    CG-CA Uka (c) 2023-2024 by Nagoya Institute of Technology, Moonshot R&amp;D Goal 1 Avatar Symbiotic Society (CC BY 4.0)<br>
+    学術活動以外の施設常設・商用利用時は各モデルの原文READMEおよびCOEIROINK話者・Open-Meteoの利用規約を確認してください。<br>
+    <a href="https://github.com/TomoakiMitsu/mmd-voice-guide-assistant" target="_blank" rel="noopener noreferrer">https://github.com/TomoakiMitsu/mmd-voice-guide-assistant</a>
+  </div>
+</footer>
+
+<script>
+const chars = {
+  gene: { img: 'assets/gene.png', alt: 'CG-CA Gene', path: 'assets/mmd/gene/Gene.pmd', license: 'CC BY 4.0' },
+  uka: { img: 'assets/uka.png', alt: 'CG-CA Uka', path: 'assets/mmd/uka/MS_Uka.pmd', license: 'CC BY 4.0' }
+};
+document.querySelectorAll('.char-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.char-tab').forEach(b => b.setAttribute('aria-selected', 'false'));
+    btn.setAttribute('aria-selected', 'true');
+    const c = chars[btn.dataset.char];
+    const img = document.getElementById('charImg');
+    img.src = c.img;
+    img.alt = c.alt;
+    document.getElementById('charPath').textContent = c.path;
+    document.getElementById('charLicense').textContent = c.license;
+  });
+});
+
+const setupPanels = [
+  {
+    title: '1. 施設基本設定（facility.json）',
+    desc: '既存施設の読み込みや新規施設の作成を行います。公開用テンプレート（sample）を汚さないよう、独自IDを指定して作成します。',
+    rows: [
+      ['既存施設を読み込む', '登録済みの施設を選択すると、全タブにその施設の設定・資料・辞書を読み込みます。'],
+      ['施設ID', 'facilities/<施設ID>/ フォルダを指定。新しいIDを入れると sample をベースに自動生成されます。'],
+      ['施設名 / 最初の挨拶', '画面起動時や「新しい会話」押下時に最初に表示される挨拶文を設定します。'],
+      ['口調・キャラクター設定', 'AIの話し方や回答の文量（例: 原則3文以内）を指定します。'],
+      ['所在地 / 最寄り駅', '場所や出発駅を省略して天気・乗り換えを尋ねた際の基準地点になります（空欄時は聞き返します）。']
+    ]
+  },
+  {
+    title: '2. 施設資料 (docs/)',
+    desc: '対象施設の docs/ フォルダ内の案内資料を一覧・編集します。保存した内容はサーバー再起動なしで次の質問から反映されます。',
+    rows: [
+      ['対応形式と上限', 'UTF-8 の .md / .txt / .json に対応（1ファイル 150KB 以内、合計 4万文字以内）。'],
+      ['直接編集と追加', '画面上のエディタで直接編集・保存できるほか、PC上の既存ファイルを選択して取り込めます。'],
+      ['非公開メモの除外', 'ファイル名・フォルダ名の先頭に _ を付けると、読み込み対象から除外され Gemini へ送信されません。']
+    ]
+  },
+  {
+    title: '3. 読み辞書 (reading_dictionary.csv)',
+    desc: '固有名詞や英字の読み上げ発音を登録します。画面のチャット文章は変えず、COEIROINK に渡すテキストのみ置換します。',
+    rows: [
+      ['表記 / 読みの登録', '長い表記を優先して1パスで置換します（例: AI → エーアイ、Wi-Fi → ワイファイ）。'],
+      ['重複・形式チェック', '保存時に本番パーサーで重複・空欄・文字数（500語以内）を検証します。'],
+      ['変換テスト', '任意の文章を入力し、保存した辞書でどう読み上げられるかをその場で確認できます。']
+    ]
+  },
+  {
+    title: '4. API・外部連携',
+    desc: 'Gemini APIキーの保管方法や使用モデル、外部API、会話ログ保存の有効/無効を一括設定します。',
+    rows: [
+      ['APIキー保存', 'Windows暗号化（DPAPI）または .env ファイルへの保存を選択できます。既存キーは画面に表示しません。'],
+      ['最新モデルを取得', 'Gemini API から generateContent 対応モデル一覧を取得し、プルダウンから選択できます。'],
+      ['外部ツール設定', 'Google検索、Open-Meteo（天気）、駅すぱあと（free / standard）の有効化を切り替えます。'],
+      ['会話ログ保存', 'runtime/conversations/YYYY-MM-DD.jsonl への日別会話記録のON/OFFを切り替えます。']
+    ]
+  },
+  {
+    title: '5. キャラ・音声・ソフト',
+    desc: 'MMDAgent-EX のキャラクターと COEIROINK の合成音声、起動する実行ファイルのパスを管理します。',
+    rows: [
+      ['MMDキャラクターモデル', 'assets/mmd/ 配下の Gene / Uka / 追加モデルを選択すると、guide.fst / guide.mdf が自動同期されます。'],
+      ['起動中COEIROINKから話者取得', '導入済みの話者・スタイル一覧を取得し、選択すると UUID・スタイルID・クレジット表記が自動入力されます。'],
+      ['話速 / ウィンドウサイズ', '音声の話速（例: 1.1）と MMDAgent-EX のウィンドウサイズ（例: 900,720）を設定します。']
+    ]
+  }
+];
+
+function renderSetup(index) {
+  const panel = setupPanels[index];
+  const box = document.getElementById('setupDetail');
+  box.replaceChildren();
+  const h = document.createElement('h3');
+  h.textContent = panel.title;
+  const p = document.createElement('p');
+  p.textContent = panel.desc;
+  const table = document.createElement('table');
+  table.className = 'spec-table';
+  for (const [k, v] of panel.rows) {
+    const tr = document.createElement('tr');
+    const th = document.createElement('th');
+    th.textContent = k;
+    const td = document.createElement('td');
+    td.textContent = v;
+    tr.append(th, td);
+    table.append(tr);
+  }
+  box.append(h, p, table);
+}
+
+document.querySelectorAll('.setup-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.setup-tab').forEach(b => b.setAttribute('aria-selected', 'false'));
+    btn.setAttribute('aria-selected', 'true');
+    renderSetup(Number(btn.dataset.tab));
+  });
+});
+renderSetup(0);
+</script>
+</body>
+</html>
